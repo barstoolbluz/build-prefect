@@ -1,0 +1,32 @@
+version = 1
+
+# Prefect build environment
+# Builds Prefect workflow orchestration platform from PyPI wheel (UI pre-included)
+
+[install]
+python312.pkg-path = "python312"
+gcc.pkg-path = "gcc"
+gcc-unwrapped.pkg-path = "gcc-unwrapped"
+gcc-unwrapped.priority = 6
+gcc-unwrapped.pkg-group = "libraries"
+
+[vars]
+
+[hook]
+
+[profile]
+
+[services]
+
+[include]
+
+[build]
+
+[options]
+# Systems that environment is compatible with
+# systems = [
+#   "aarch64-darwin",
+#   "aarch64-linux",
+#   "x86_64-darwin",
+#   "x86_64-linux",
+# ]
