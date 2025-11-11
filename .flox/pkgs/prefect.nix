@@ -8,15 +8,19 @@
 python312Packages.buildPythonPackage rec {
   pname = "prefect";
   version = "3.1.7";
-  format = "wheel";
+  pyproject = true;
 
-  # Fetch pre-built wheel from PyPI (includes UI assets)
+  # Fetch from PyPI (tarball includes UI assets)
   src = fetchPypi {
     inherit pname version;
-    dist = "py3";
-    python = "py3";
-    hash = "";  # Will get from build error
+    hash = "sha256-eEuyFs00Kun/tl8CBYbRAMIFm5PfO/w+caMnAXlP7t4=";
   };
+
+  # Build system
+  build-system = with python312Packages; [
+    setuptools
+    wheel
+  ];
 
   # Runtime dependencies
   propagatedBuildInputs = with python312Packages; [
@@ -41,6 +45,7 @@ python312Packages.buildPythonPackage rec {
     # Data validation & serialization
     pydantic
     pydantic-settings
+    pydantic-extra-types
     orjson
     jsonschema
     jsonpatch
@@ -57,6 +62,7 @@ python312Packages.buildPythonPackage rec {
     python-dateutil
     python-slugify
     dateparser
+    pytz
 
     # Serialization & packaging
     cloudpickle
@@ -70,23 +76,38 @@ python312Packages.buildPythonPackage rec {
     kubernetes
 
     # Utilities
+    apprise
+    cachetools
     coolname
     fsspec
     graphene
+    graphviz
     griffe
+    humanize
     jinja2
+    jinja2-humanize-extension
+    opentelemetry-api
     pathspec
+    prometheus-client
+    python-socks
+    rfc3339-validator
     typing-extensions
+    ujson
 
     # Cryptography (requires C/OpenSSL)
     cryptography
 
     # Optional but commonly used
+    exceptiongroup
     psycopg2  # PostgreSQL synchronous driver
   ];
 
   # Skip tests during build (requires server setup)
   doCheck = false;
+
+  # Disable strict runtime dependency checking due to nixpkgs version mismatches
+  # Prefect specifies upper bounds that are too restrictive for nixpkgs
+  dontCheckRuntimeDeps = true;
 
   pythonImportsCheck = [ "prefect" ];
 
