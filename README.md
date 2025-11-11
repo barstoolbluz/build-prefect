@@ -351,10 +351,101 @@ See the companion `prefect-dev` environment (if available) which includes:
 
 ### For Production Deployment
 
-Consider these patterns:
-- **Kubernetes**: Use Prefect Helm charts with this package
-- **Docker**: Build worker images using this Nix expression
-- **Prefect Cloud**: Use cloud-hosted server with self-hosted workers
+This build supports **all production deployment patterns**:
+
+#### 1. Local Development
+```bash
+flox activate
+./result-prefect/bin/prefect server start
+```
+
+#### 2. CI/CD
+```yaml
+# GitHub Actions example
+- uses: flox/flox-github-actions@v1
+- run: flox install myorg/prefect
+- run: python test_flow.py
+```
+
+#### 3. Bare Metal / VMs
+```bash
+# Install via Flox
+flox install myorg/prefect
+
+# Create systemd service
+cat > /etc/systemd/system/prefect-worker.service << 'EOF'
+[Service]
+ExecStart=/usr/local/bin/flox activate -- prefect worker start
+Environment="PREFECT_API_URL=http://server:4200/api"
+Restart=always
+EOF
+
+systemctl enable --now prefect-worker
+```
+
+#### 4. Docker / Podman Containers
+```bash
+# Export environment as OCI image
+flox containerize -f prefect.tar --tag prefect:3.1.7
+
+# Load and run
+docker load -i prefect.tar
+docker run -e PREFECT_API_URL=http://server:4200/api \
+  prefect-build:prefect:3.1.7 \
+  prefect worker start --pool kubernetes
+
+# Or run server
+docker run -p 4200:4200 \
+  prefect-build:prefect:3.1.7 \
+  prefect server start
+```
+
+#### 5. Kubernetes (Traditional)
+```yaml
+# Deploy with containerized image
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prefect-worker
+spec:
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: myorg/prefect:3.1.7  # From flox containerize
+        command: ["prefect", "worker", "start"]
+        env:
+        - name: PREFECT_API_URL
+          value: "http://prefect-server:4200/api"
+```
+
+#### 6. Kubernetes, Uncontained (Imageless)
+```yaml
+# Reference FloxHub environment directly
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prefect-worker
+spec:
+  template:
+    metadata:
+      annotations:
+        flox.dev/environment: "myorg/prefect"
+    spec:
+      runtimeClassName: flox  # Use Flox runtime shim
+      containers:
+      - name: worker
+        image: flox/empty:1.0.0  # Stub image (49 bytes!)
+        command: ["prefect", "worker", "start"]
+```
+
+**Benefits over traditional Docker images:**
+- ✅ Deterministic builds (Nix = reproducible)
+- ✅ Smaller images (652MB vs ~1.2GB official)
+- ✅ SBOM by construction (Nix closure)
+- ✅ Fast rollbacks (reference generation)
+- ✅ Zero image rebuilds for CVE patches
+- ✅ Same environment: dev → CI → prod
 
 ## Resources
 
